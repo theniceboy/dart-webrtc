@@ -85,7 +85,11 @@ class RTCRtpSenderWeb extends RTCRtpSender {
   Future<List<StatsReport>> getStats() async {
     var stats = await _jsRtpSender.getStats().toDart;
     var report = <StatsReport>[];
-    (stats.dartify() as Map<String, dynamic>).forEach((key, value) {
+    final s = getJSObjectKeys(stats);
+    s.forEach((key) {
+      final jsv = stats.getProperty(key.toJS);
+      if (jsv == null) return;
+      final value = jsv.dartify() as Map<String, dynamic>;
       report.add(
           StatsReport(value['id'], value['type'], value['timestamp'], value));
     });
@@ -113,4 +117,15 @@ class RTCRtpSenderWeb extends RTCRtpSender {
   Future<void> dispose() async {}
 
   web.RTCRtpSender get jsRtpSender => _jsRtpSender;
+}
+
+@JS('Object')
+extension type JSGlobalObject._(JSObject _) implements JSObject {
+  external static JSArray<JSString> keys(JSObject obj);
+}
+
+List<String> getJSObjectKeys(JSObject obj) {
+  final properties = JSGlobalObject.keys(obj);
+  final length = properties.length;
+  return List.generate(length, (i) => properties[i].toString());
 }
